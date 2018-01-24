@@ -12,12 +12,6 @@ The analysis of the data was conducted in the [R project for statistical computi
 
 **R version 3.4.2** is used. If the code does not work, it is very likely that an older R version is installed. If an error occures it sometimes helps to execute the script several times. Particularly in the case of package installation problems it could be helpful to restart the R session and execute the code over again. If necessary, third party libraries like `libgdal-dev` have to be installed.
 
-*Attention*: Please set your working directory in the first code chunk!
-
-### GitHub
-
-The code for the herein described process can also be freely downloaded from [https://github.com/srfdata/2018-01-roger-federer](https://github.com/srfdata/2018-01-roger-federer). Criticism in the form of GitHub issues and pull requests are very welcome!
-
 ### License
 
 <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons Lizenzvertrag" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a>
