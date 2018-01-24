@@ -1,7 +1,5 @@
 .httr-oauth
 .google_API_keys
-*.RData
-!rdata/*
 rdata/.DS_Store
 *.Rproj
 *.Rproj.user

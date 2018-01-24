@@ -21,7 +21,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, echo=FALSE}
-project_name <- "1714-federer"
+project_name <- "2018-01-roger-federer"
 r_version <- "3.4.2"
 ```
 
@@ -36,8 +36,6 @@ SRF Data attaches great importance to transparent and reproducible data preproce
 The analysis of the data was conducted in the [R project for statistical computing](https://www.r-project.org/). The RMarkdown script used to generate this document and all the resulting data can be downloaded under this [link](https://srfdata.github.io/`r project_name`/rscript.zip). Through executing `analysis.Rmd`, the herein described process can be reproduced and this document can be generated. In the course of this, data from the folder `ìnput` will be processed and results will be written into `output`.
 
 **R version `r r_version`** is used. If the code does not work, it is very likely that an older R version is installed. If an error occures it sometimes helps to execute the script several times. Particularly in the case of package installation problems it could be helpful to restart the R session and execute the code over again. If necessary, third party libraries like `libgdal-dev` have to be installed.
-
-*Attention*: Please set your working directory in the first code chunk!
 
 ### GitHub
 
