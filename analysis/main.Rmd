@@ -1,0 +1,1134 @@
+---
+title: "Roger Federer"
+author: "SRF Data, Angelo Zehr (angelo.zehr@srf.ch)"
+date: "October 2017"
+output:
+  html_document:
+    code_folding: show
+    echo: TRUE
+    warning: FALSE
+    message: FALSE
+    theme: simplex
+    toc: yes
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+subtitle: Preprocessing and EDA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE}
+project_name <- "1714-federer"
+r_version <- "3.4.2"
+```
+
+## Preliminary Remarks
+
+This document illustrates the analysis of the article [20 years, 20 titles on srf.ch](https://www.srf.ch/static/srf-data/data/2018/federer/#/en).
+
+SRF Data attaches great importance to transparent and reproducible data preprocessing and -analysis. SRF Data believes in the principles of open data but also open and reproducible methods. Third parties should be empowered to build on the work of SRF Data and to generate new analyses and applications.
+
+### R-Script & Processed Data
+
+The analysis of the data was conducted in the [R project for statistical computing](https://www.r-project.org/). The RMarkdown script used to generate this document and all the resulting data can be downloaded under this [link](https://srfdata.github.io/`r project_name`/rscript.zip). Through executing `analysis.Rmd`, the herein described process can be reproduced and this document can be generated. In the course of this, data from the folder `ìnput` will be processed and results will be written into `output`.
+
+**R version `r r_version`** is used. If the code does not work, it is very likely that an older R version is installed. If an error occures it sometimes helps to execute the script several times. Particularly in the case of package installation problems it could be helpful to restart the R session and execute the code over again. If necessary, third party libraries like `libgdal-dev` have to be installed.
+
+*Attention*: Please set your working directory in the first code chunk!
+
+### GitHub
+
+The code for the herein described process can also be freely downloaded from [https://github.com/srfdata/`r project_name`](https://github.com/srfdata/`r project_name`). Criticism in the form of GitHub issues and pull requests are very welcome!
+
+### License
+
+<a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative Commons Lizenzvertrag" style="border-width:0" src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png" /></a>
+<br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/Dataset" property="dct:title" rel="dct:type">`r project_name`</span> by <a xmlns:cc="http://creativecommons.org/ns#" href="https://github.com/srfdata/`r project_name`" property="cc:attributionName" rel="cc:attributionURL">SRF Data</a> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>.
+
+### Other Projects
+
+All code & data from [SRF Data](https://srf.ch/data) are available under [https://srfdata.github.io](https://srfdata.github.io).
+
+### Exclusion of Liability
+
+The published information has been collated carefully, but no guarantee is offered of its completeness, correctness or up-to-date nature. No liability is accepted for damage or loss incurred from the use of this script or the information drawn from it. This exclusion of liability also applies to third-party content that is accessible via this offer.
+
+### Data Description 
+
+#### `player_match_stats`
+
+| Column | Data Type | Description |
+|-------|------|-----------------------------------------------------------------------------|
+| match_id            | num | unique id of the match |
+| tournament_event_id | int | unique id of the tournament (e.g. Roland Garros 2011) |
+| tournament_id       | int | unique id of the sort of tournament (e.g. Roland Garros) |
+| season              | int | year in 4 digit form (e.g. 2011) |
+| date                | Date | date of the start of the tournament (e.g. 2011-10-20) |
+| level               | chr | one of: ATP 500 (A), ATP 250 (B), Davis Cup (D), Tour Finals (F), Grand Slam (G), Masters (M), Alternative Finals (L), Olympia (O), World Team Cup (T) |
+| surface             | chr | one of: Clay (C), Grass (G), Hard (H), Carpet (P) |
+| round               | chr | one of: R128, R64, R32, R16, Quarter Finals (QF), Semi Finals (SF), Final (F), Robin Round (RR), BR |
+| best_of             | int | play mode. One of: 3 or 5 sets |
+| player_id           | int | unique id of player (e.g. 1234) |
+| player_rank         | int | rank of player before match (e.g. 10) |
+| player_elo_rating   | int | elo rating of player before match (e.g. 1000) |
+| player_age          | num | age of player in years (e.g 21.2) |
+| player_height       | int | height of player in centimeters (e.g. 173) |
+| opponent_id         | int | unique id of opponent (e.g. 1234) |
+| opponent_rank       | int | rank of opponent before match (e.g. 10) |
+| opponent_elo_rating | int | elo rating of opponent before match (e.g. 1000) |
+| opponent_seed       | int | not used, many NAs – seed to start in a tournament |
+| opponent_entry      | chr | not used, many NAs - one of LL, Q, WC, PR, SE |
+| opponent_country_id | chr | 3 character country origin of opponent (e.g. AUS) |
+| opponent_age        | num | age of opponent in years (e.g 21.2) |
+| opponent_height     | int | height of opponent in centimeters (e.g. 173) |
+| outcome             | chr | "RET" if one of the players retired from the game early (else: NA) |
+| p_matches           | int | 1 if player won the match, 0 if the opponent won |
+| o_matches           | int | 0 if player won the match, 1 if the opponent won |
+| p_sets              | int | number of sets the player won (e.g. 2) |
+| o_sets              | int | number of sets the opponent won (e.g. 1) |
+| p_games             | int | number of games the player won (e.g. 30) |
+| o_games             | int | number of games the opponent won (e.g. 26) |
+| p_ace               | int | number of aces the player made (e.g. 10) |
+| p_df                | int | number of double faults the player made (e.g. 5) |
+| p_sv_pt             | int | number of serves the player played (e.g. 120) |
+| p_1st_in            | int | number of the players first serves that hit the field (e.g. 80) |
+| p_1st_won           | int | number of first serves that the player won (e.g. 60) |
+| p_2nd_won           | int | number of second serves that the player won (e.g. 40) |
+| p_sv_gms            | int | number of games the player won with his serve (e.g. 10) |
+| p_bp_sv             | int | number of break points the player saved (e.g. 3) |
+| p_bp_fc             | int | number of break points the player faced (e.g. 5) |
+| o_ace               | int | number of aces the opponent made (e.g. 10) |
+| o_df                | int | number of double faults the opponent made (e.g. 5) |
+| o_sv_pt             | int | number of serves the opponent played (e.g. 120) |
+| o_1st_in            | int | number of the opponents first serves that hit the field (e.g. 80) |
+| o_1st_won           | int | number of first serves that the opponent won (e.g. 60) |
+| o_2nd_won           | int | number of second serves that the opponent won (e.g. 40) |
+| o_sv_gms            | int | number of games the opponent won with his serve (e.g. 10) |
+| o_bp_sv             | int | number of break points the opponent saved (e.g. 2) |
+| o_bp_fc             | int | number of break points the opponent faced (e.g. 4) |
+| minutes             | int | number the duration of a game in minutes (e.g 120) |
+| p_points            | int | number of points the player made in the match (e.g. 90) |
+| o_points            | int | number of points the opponent made in the match (e.g. 94) |
+| ace_rate            | num | percentage of aces the player made as decimal (e.g. 0.15) |
+| double_faults       | num | percentage of double faults the player made as decimal (e.g. 0.15) |
+| first_serve_in      | num | percentage of the players first serve that hit the field as decimal (e.g. 0.8) |
+| first_serve_won     | num | percentage of points the player made with his first serve as decimal (e.g. 0.75) |
+| second_serve_needed | num | percentage of the players first serve that did not hit the field as decimal (e.g. 0.25) |
+| second_serve_won    | num | percentage of points the player made with his second serve as decimal (e.g. 0.4) |
+| serves_won          | num | percentage of points the player made with his serve total as decimal (e.g. 0.9) |
+| breakpoints_saved   | num | percentage of break points the player saved as decimal (e.g. 0.9) |
+| o_ace_rate          | num | percentage of aces the opponent made as decimal (e.g. 0.1) |
+| first_return_won    | num | percentage of points the opponent made during the first serve as decimal (e.g. 0.3) |
+| second_return_won   | num | percentage of points the opponent made during the second serve as decimal (e.g. 0.4) |
+| returns_won         | num | percentage of points the opponent made during the serve total as decimal (e.g. 0.5) |
+| breakpoints_won     | num | percentage of break points the player won as decimal (e.g. 0.9) |
+| Set1                | chr | result of the 1st set, player left, opponent right (e.g. 7-6(3)) |
+| Set2                | chr | result of the 2nd set, player left, opponent right (e.g. 2-6) |
+| Set3                | chr | result of the 3rd set, player left, opponent right (e.g. 6-4 or NA) |
+| Set4                | chr | result of the 4th set, player left, opponent right (e.g. 6-7(2) or NA) |
+| Set5                | chr | result of the 5th set, player left, opponent right (e.g. 3-6 or NA) |
+| RET                 | chr | "RET" if one of the players retired from the game early (else: NA) |
+| score               | chr | score of the whole match, player left, opponent right (e.g. 7-6(3) 2-6 6-4 6-7(2) 3-6) |
+| p_tie_breaks_won    | num | percentage of tie breaks the player won as decimal (e.g. 0.5) |
+| o_tie_breaks_won    | num | percentage of tie breaks the opponent won as decimal (e.g. 0.5) |
+| p_deciding_sets_won | num | percentage of deciding sets the player won as decimal (e.g. 0) |
+| o_deciding_sets_won | num | percentage of deciding sets the opponent won as decimal (e.g. 1) |
+
+
+### Original source
+
+The database was set up and initialised by Mileta Cekovic which runs [Ultimate Tennis Statistics](http://www.ultimatetennisstatistics.com/). This project's data is based on information found on the [ATP Website](https://atpworldtour.com/), which does not offer an official data API.
+
+The point by point data used in chapter 9 was collected by [Jeff Sackmann](https://github.com/JeffSackmann/) and a team of volunteers. Their project is called the [Map Charting Project](www.tennisabstract.com/charting/). The data is not imported directly but via the [deuce package](https://github.com/skoval/deuce) by [Stephanie Kovalchik](http://on-the-t.com/) who offers a lot of Jeff Sackmann's data in a handy R package.
+
+#### Last updated
+
+- The MCP [github repo](https://github.com/JeffSackmann/tennis_MatchChartingProject) has not been updated for 4 months.
+- Tour Finals 2017 are missing in the ultimatetennisstatistics data because it's missing on the [ATP Website](http://www.atpworldtour.com/en/scores/archive/nitto-atp-finals/605/2017/results).
+- Besides that the data was last updated on the 17th of January (Australian Open 2018 is thus not included).
+
+
+## Preparations
+
+```{r preparations, echo=FALSE}
+detach_all_packages <- function() {
+  basic_packages_blank <-  c("stats",
+                             "graphics",
+                             "grDevices",
+                             "utils",
+                             "datasets",
+                             "methods",
+                             "base")
+  basic_packages <- paste("package:", basic_packages_blank, sep = "")
+
+  package_list <- search()[
+    ifelse(unlist(gregexpr("package:", search())) == 1, TRUE, FALSE)]
+
+  package_list <- setdiff(package_list, basic_packages)
+
+  if (length(package_list) > 0)  for (package in package_list) {
+    detach(package, character.only = TRUE, unload = TRUE)
+    print(paste("package ", package, " detached", sep = ""))
+  }
+}
+
+detach_all_packages()
+source("scripts/csf.R")
+path_to_wd <- csf() # if this - for some reason - does not work,
+# replace with a hardcoded path, like so: "~/projects/rddj-template/analysis/"
+if ( is.null(path_to_wd) | !dir.exists(path_to_wd)) {
+  stop("No working directory specified for current user")
+} else {
+  setwd(path_to_wd)
+}
+```
+
+
+### Define Packages
+
+```{r define packages}
+# von https://mran.revolutionanalytics.com/web/packages/checkpoint/vignettes/using-checkpoint-with-knitr.html
+# alle Packages, die nicht gebraucht werden, können hier entfernt werden (auskommentieren reicht nicht!)
+# tidyverse: see https://blog.rstudio.org/2016/09/15/tidyverse-1-0-0/
+cat("
+library(lubridate) # date handling
+library(tidyverse) # ggplot2, dplyr, tidyr, readr, purrr, tibble
+library(ggrepel) # repelling text labels for ggplot
+library(RColorBrewer) # better colors for ggplot
+library(magrittr) # pipes
+library(stringr) # string manipulation
+library(scales) # scales for ggplot2
+library(jsonlite) # json
+library(lintr) # code linting, auf keinen Fall entfernen ;-)
+library(rmarkdown) # muss für automatisches knitting
+# in deploy.sh eingebunden werden",
+file = "manifest.R")
+# die aktuelle Version von unserem rstats-template bezieht sich auf den 1. Juni 2017
+package_date <- "2017-09-01"
+```
+
+### Install Packages
+
+```{r install packages}
+if (!require(checkpoint)) {
+  if (!require(devtools)) {
+    install.packages("devtools", repos = "http://cran.us.r-project.org")
+    require(devtools)
+  }
+  devtools::install_github("checkpoint",
+                           username = "RevolutionAnalytics",
+                           ref = "v0.3.2",
+                           repos = "http://cran.us.r-project.org")
+  require(checkpoint)
+}
+# nolint start
+if (!dir.exists("~/.checkpoint")) {
+  dir.create("~/.checkpoint")
+}
+# nolint end
+checkpoint(snapshotDate = package_date,
+           project = path_to_wd,
+           verbose = T,
+           scanForPackages = F,
+           use.knitr = F,
+           R.version = r_version) # wenn eine "ähnliche" Version von R
+ # installiert ist (3.4.x in diesem Fall), kann dieses
+ # Argument hier entfernt und die vorhandene R-Version
+ # verwendet werden - vorausgesetzt, die hier verwendeten
+ # Packages funktionieren mit dieser.
+
+
+# install deuce package for point-by-point data
+# https://github.com/skoval/deuce
+if (!require(deuce)) {
+  if (!require(devtools)) {
+    install.packages("devtools", repos = "http://cran.us.r-project.org")
+    require(devtools)
+  }
+  devtools::install_github("skoval/deuce")
+  library(deuce)
+}
+
+rm(package_date, r_version)
+
+```
+
+
+### Load Packages
+
+```{r load packages}
+source("manifest.R")
+unlink("manifest.R")
+sessionInfo()
+rm(list = ls(all.names = TRUE))
+```
+
+### Load Data
+
+```{r load data from different sources}
+
+# manual
+# create lookup tables for level names
+levels <- data.frame(t(c(
+  "B" = "ATP 250",
+  "A" = "ATP 500",
+  "M" = "Masters",
+  "F" = "Tour Finals",
+  "G" = "Grand Slam",
+  "D" = "Davis Cup",
+  "L" = "Alternative Finals",
+  "O" = "Olympia",
+  "T" = "World Team Cup"
+)), stringsAsFactors = FALSE) %>%
+  gather(level, name)
+
+# a (subjective) player set of tennis champions to compare Federer against
+champions <- data.frame(t(c(
+  "3819" = "Roger Federer",
+  "284"  = "Jimmy Connors",
+  "437"  = "Bjorn Borg",
+  "581"  = "John McEnroe",
+  "656"  = "Ivan Lendl",
+  "1222" = "Stefan Edberg",
+  "1948" = "Pete Sampras",
+  "1736" = "Andre Agassi"
+)), stringsAsFactors = FALSE) %>%
+  gather(id, name) %>%
+  mutate(id = as.numeric(gsub("X(\\d*)(\\.\\d)?", "\\1", id)))
+
+# The big 4: Murray, Djoko, Nadal, Federer
+big_4 <- data.frame(t(c(
+  "3819" = "Roger Federer",
+  "4742" = "Rafael Nadal",
+  "4920" = "Novak Djokovic",
+  "4913" = "Andy Murray"
+)), stringsAsFactors = FALSE) %>%
+  gather(id, name) %>%
+  mutate(id = as.numeric(gsub("X(\\d*)(\\.\\d)?", "\\1", id)))
+
+# RData
+load(file = "input/rdata/tournaments.RData")
+load(file = "input/rdata/player.RData")
+load(file = "input/rdata/player_names.RData")
+load(file = "input/rdata/player_ranking.RData")
+load(file = "input/rdata/player_match_stats.RData")
+load(file = "input/rdata/player_stats.RData")
+
+# select all of Federers matches
+federer_match_stats <- player_match_stats %>%
+  filter(player_id == 3819)
+
+# read in ranking point breakdown provided on ATP website
+# src: www.atpworldtour.com/en/rankings/rankings-faq
+ranking_point_breakdown <- read.csv(
+  "input/ranking_points.csv",
+  stringsAsFactors = FALSE
+)
+
+```
+
+## 1. Federer's ATP Rank during his career
+
+```{r federers atp rank, fig.width = 2, fig.height = 10}
+
+# generate empty frame for each day of the time frame
+interpolate_dates <- data.frame(
+  rank_date = seq(
+    from = as.Date("1998-07-06"),
+    to = Sys.Date(),
+    by = "day"
+  )
+)
+
+# as a navigation I want to use Federers ATP ranks
+federer_ranking <- player_ranking %>%
+  filter(player_id == 3819) %>%
+  collect() %>%
+  filter(rank_date >= as.Date("1998-07-06")) %>%
+  arrange(desc(rank_date)) %>%
+  select(-player_id) %>%
+  right_join(
+    interpolate_dates,
+    by = "rank_date"
+  ) %>%
+  fill(rank, rank_points) %>%
+  rename(date = rank_date)
+
+# test plot
+ggplot(
+  data = federer_ranking,
+  aes(
+    x = date,
+    y = rank,
+    group = 1
+  )
+) +
+  coord_flip() +
+  geom_line() +
+  theme_minimal() +
+  scale_x_date() +
+  scale_y_continuous(trans = trans_new(
+    "nlog10_trans",
+    transform = function(y) {
+      -log10(y)
+    },
+    inverse = function(y) {
+      10 ** y
+    })
+  )
+
+```
+
+## 2. Grand Slam Participations of Federer
+
+```{r federers grand slam tournaments}
+
+# get order of rounds from ranking point breakdown table
+ranking_point_levels <- names(ranking_point_breakdown)
+
+# select only Grand Slam matches and keeop only latest match per tournament
+federer_grand_slams <- federer_match_stats %>%
+  filter(level == "G") %>%
+  group_by(tournament_id, season) %>%
+  mutate(round = factor(round, levels = ranking_point_levels)) %>%
+  arrange(date, round) %>%
+  filter(as.integer(round) == min(as.integer(round)))  %>%
+  mutate(round = as.character(round)) %>%
+  mutate(round = ifelse(round == "F" & p_matches == 1, "W", round)) %>%
+  ungroup()
+
+# add slugs of tournament name
+grand_slam_slugs <- data.frame(t(c(
+  "1" = "ao", # Australian Open
+  "19" = "fo", # French Open
+  "17" = "w", # Wimbledon
+  "6" = "uso" # US Open
+))) %>%
+  gather(tournament_id, slug) %>%
+  mutate(
+    tournament_id = as.numeric(gsub("X(\\d*)(\\.\\d)?", "\\1", tournament_id))
+  )
+
+export_federer_grand_slams <- federer_grand_slams %>%
+  left_join(
+    grand_slam_slugs,
+    by = "tournament_id"
+  ) %>%
+  select(slug, season, round) %>%
+  mutate(slug = factor(slug, levels = grand_slam_slugs$slug)) %>%
+  arrange(season, slug)
+
+```
+
+## 3. Rise to the top
+
+```{r rise to the top}
+
+# cut off all the data points that occur after player reached his highest rank
+champions_rise <- player_ranking %>%
+  filter(rank_date >= as.Date("1973-01-01")) %>%
+  filter(
+    player_id %in% champions$id |
+    player_id %in% big_4$id
+  ) %>%
+  left_join(
+    player_names,
+    by = "player_id"
+  ) %>%
+  left_join(
+    player %>%
+      select(player_id, dob),
+    by = "player_id"
+  ) %>%
+  mutate(
+    age = lubridate::as.duration(rank_date - dob) %>%
+      as.numeric("years")
+  ) %>%
+  group_by(player_id) %>%
+  mutate(
+    highest_rank = min(rank, na.rm = TRUE),
+    age_rank_reached = min(age[rank == highest_rank], na.rm = TRUE)
+  ) %>%
+  filter(age <= age_rank_reached)
+
+# rise
+ggplot(
+  data = champions_rise,
+  aes(x = age, y = rank)
+) +
+  geom_step(
+    data = champions_rise,
+    aes(colour = name),
+    size = 0.4,
+    alpha = 0.9
+  ) +
+  geom_step(
+    data = champions_rise %>%
+      filter(player_id  == 3819),
+    size = 1,
+    alpha = 1
+  ) +
+  xlim(c(15, 30)) +
+  scale_y_continuous(trans = trans_new(
+    "nlog10_trans",
+    transform = function(y) {
+      -log10(y)
+    },
+    inverse = function(y) {
+      10 ** y
+    }),
+    name = "ATP Rank (logarithmic)",
+    limits = c(1000, 0.5)
+  ) +
+  geom_text_repel(
+    data = champions_rise %>%
+      filter(
+        player_id %in% champions$id |
+        player_id %in% big_4$id
+      ) %>%
+      group_by(name)  %>%
+      filter(rank == min(rank, na.rm = TRUE)),
+    aes(label = name),
+    size = 3,
+    segment.color = NA,
+    angle = 90
+  ) +
+  scale_colour_manual(values = colorRampPalette(brewer.pal(7, "Set1"))(11)) +
+  theme_minimal() +
+  labs(
+    title = "ATP Ranking vs. Age",
+    subtitle = "All players having reached the top 20 in grey.",
+    x = "Age"
+  )
+
+```
+
+
+## 4. Serve stats
+
+```{r serves}
+
+# get match stats for big 4
+big_4_match_stats <- player_match_stats %>%
+  filter(player_id %in% big_4$id) %>%
+  left_join(player_names, by = "player_id")
+
+# calculate means per season
+big_4_serve_stat_means <- big_4_match_stats %>%
+  select(season, name, ace_rate:breakpoints_saved, player_id) %>%
+  group_by(season, name, player_id) %>%
+  summarise_all(mean, na.rm = TRUE) %>%
+  gather(category, value, ace_rate:breakpoints_saved)
+
+# extract serves won
+big_4_serves_won <- big_4_serve_stat_means %>%
+  filter(category == "serves_won")
+
+ggplot(
+  data = big_4_serves_won,
+  aes(
+    x = season,
+    y = value,
+    color = name,
+    size = player_id == 3819
+  )
+) +
+  geom_line() +
+  theme_minimal() +
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    title = "Serves won in percent",
+    x = "Season",
+    y = "Share"
+  ) +
+  scale_size_manual(values = c(0.5, 1.5)) +
+  scale_colour_manual(values = colorRampPalette(brewer.pal(7, "Set1"))(10)) +
+  xlim(min(big_4_serves_won$season), max(big_4_serves_won$season) + 5) +
+  geom_text_repel(
+    data = big_4_serves_won %>%
+      group_by(player_id) %>%
+      filter(season == max(season)),
+    aes(label = name),
+    size = 3,
+    nudge_x = 1,
+    segment.color = NA
+  ) +
+  theme(legend.position = "none")
+
+```
+
+
+## 5. Time at ATP Number 1
+
+```{r number one}
+
+
+# generate empty frame for each day of the time frame
+interpolate_dates <- data.frame(
+  rank_date = seq(
+    from = as.Date("1974-07-29"),
+    to = Sys.Date(),
+    by = "week"
+  )
+)
+
+# create data frame with only number ones for simplified plot
+no_1s <- player_ranking %>%
+  filter(rank_date > as.Date("1973-01-01")) %>%
+  filter(rank == 1) %>%
+  # reduce ranking data to mondays
+  mutate(
+    rank_date = rank_date - as.numeric(format(rank_date, "%u")) + 1
+  ) %>%
+  left_join(
+    player_names %>%
+      select(player_id, name),
+    by = "player_id"
+  ) %>%
+  right_join(
+    interpolate_dates,
+    by = "rank_date"
+  ) %>%
+  select(-rank_points, -rank) %>%
+  fill(player_id, name)
+
+# calculate records for most consecutive weeks
+longest_periods <- no_1s %>%
+  mutate(
+    consecutive = 0, # needed as starting point
+    consecutive = ifelse(
+      player_id != lag(player_id, default = 0), # restart if player changed
+      row_number(),
+      NA
+    )
+  ) %>%
+  tidyr::fill(consecutive) %>%
+  group_by(name, consecutive) %>%
+  tally() %>%
+  ungroup() %>%
+  top_n(10, wt = n) %>%
+  arrange(desc(n)) %>%
+  select(name, consecutive_weeks = n)
+
+knitr::kable(longest_periods)
+
+# define order of players manually
+n1_levels <- c(
+  "Jimmy Connors",
+  "Bjorn Borg",
+  "John Mcenroe",
+  "Ivan Lendl",
+  "Stefan Edberg",
+  "Pete Sampras",
+  "Andre Agassi",
+  "Roger Federer",
+  "Rafael Nadal",
+  "Novak Djokovic",
+  "Andy Murray"
+)
+
+ggplot(
+  data = no_1s %>%
+    filter(name %in% n1_levels),
+  aes(
+    x = rank_date,
+    y = factor(name, levels = rev(n1_levels))
+  )
+) +
+  geom_point(size = 0.01) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(
+    x = "Year",
+    y = "Player",
+    title = "When where the players in the N°1 of the ATP Rankings"
+  )
+
+```
+
+
+## 6. Federer against the Big 4
+
+```{r federer against big 4, fig.width = 8, fig.height = 3}
+
+# select only relevant matches and mangle so federer has -1 for losses
+# and +1 for wins
+federer_vs_big_4_matches <- player_match_stats %>%
+  filter(player_id == 3819 & opponent_id %in% big_4$id) %>%
+  left_join(big_4, by = c("opponent_id" = "id")) %>%
+  arrange(date) %>%
+  mutate(o_matches = o_matches * -1) %>%
+  mutate(o_sets = o_sets * -1) %>%
+  mutate(o_games = o_games * -1) %>%
+  mutate(o_points = o_points * -1) %>%
+  select(
+    date,
+    match_id,
+    opponent_id,
+    name,
+    surface,
+    p_matches,
+    o_matches,
+    p_sets,
+    o_sets,
+    p_games,
+    o_games,
+    p_points,
+    o_points
+  ) %>%
+  mutate(fed_won = p_matches == 1) %>%
+  gather(key, value, p_matches:o_points)
+
+ggplot(
+  data = federer_vs_big_4_matches,
+  aes(
+    x = factor(date),
+    y = value,
+    fill = surface
+  )
+) +
+  geom_bar(
+    data = federer_vs_big_4_matches %>%
+      filter(key == "p_matches" | key == "o_matches"),
+    stat = "identity"
+  ) +
+  facet_wrap(
+    ~ name,
+    nrow = 3,
+    scales = "free_x"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_blank()) +
+  geom_hline(yintercept = 0) +
+  labs(
+    x = "All matches (chronological)",
+    y = "Opponent | Fed",
+    title = "Federer vs. Big 4: Matches won over time",
+    fill = "Surface"
+  )
+
+```
+
+
+## 7. Under Pressure
+
+```{r under pressure}
+
+under_pressure_years <- big_4_match_stats %>%
+  group_by(season, name, player_id) %>%
+  summarise(
+    tie_breaks_won = sum(p_tie_breaks_won, na.rm = TRUE) /
+      (sum(p_tie_breaks_won, na.rm = TRUE) +
+       sum(o_tie_breaks_won, na.rm = TRUE)),
+    deciding_sets_won = sum(p_deciding_sets_won, na.rm = TRUE) /
+      (sum(p_deciding_sets_won, na.rm = TRUE) +
+      sum(o_deciding_sets_won, na.rm = TRUE)),
+    breakpoints_saved = sum(p_bp_sv, na.rm = TRUE) /
+      sum(p_bp_fc, na.rm = TRUE),
+    breakpoints_converted = (sum(o_bp_fc, na.rm = TRUE) -
+      sum(o_bp_sv, na.rm = TRUE)) /
+      sum(o_bp_fc, na.rm = TRUE)
+  ) %>%
+  ungroup %>%
+  mutate(
+    under_pressure_index =
+      breakpoints_converted +
+      breakpoints_saved +
+      tie_breaks_won +
+      deciding_sets_won
+  ) %>%
+  gather(index, value, tie_breaks_won:under_pressure_index)
+
+ggplot(
+  data = under_pressure_years %>%
+    filter(
+      name %in% big_4$name,
+      index == "under_pressure_index"
+    ),
+  aes(
+    x = season,
+    y = value,
+    color = name,
+    size = name == "Roger Federer"
+  )
+) +
+  geom_line() +
+  theme_minimal() +
+  scale_size_manual(values = c(0.5, 1.5)) +
+  scale_colour_manual(values = colorRampPalette(brewer.pal(7, "Set1"))(10)) +
+  theme(legend.position = "none") +
+  geom_text_repel(
+    data = under_pressure_years %>%
+      filter(
+        name %in% big_4$name,
+        index == "under_pressure_index"
+      ) %>%
+      group_by(name) %>%
+      filter(season == max(season)),
+    aes(label = name),
+    size = 3,
+    nudge_x = 1,
+    segment.color = NA
+  ) +
+  labs(
+    title = "Under Pressure Index (ATP)",
+    x = "Years",
+    y = "Under Pressure Performance"
+  )
+
+```
+
+## 8. Number of matches vs. win percentage
+
+```{r wins vs matches}
+
+# read from materialized veiw player_stats
+wins_defeats <- player_stats %>%
+  select(player_id, wins = p_matches, defeats = o_matches) %>%
+  collect()
+
+# calculate total and percentage values
+wins_defeats %<>%
+  mutate(total = wins + defeats) %>%
+  mutate(win_percentage = wins / total)
+
+# filter out irrelevant players with less than 100 matches played
+wins_defeats %<>%
+  filter(total > 100, win_percentage > 0.6)
+
+# join player names
+wins_defeats %<>%
+  left_join(
+    player_names,
+    by = "player_id"
+  )
+
+# define players of interest (top 10 plus historic champions)
+players_of_interest <- wins_defeats %>%
+  filter(
+    player_id %in% big_4$id |
+    player_id %in% champions$id
+  )
+
+ggplot(
+  data = wins_defeats,
+  aes(
+    x = win_percentage,
+    y = total,
+    alpha = win_percentage,
+    color = active
+  )
+) +
+  guides(alpha = FALSE) +
+  geom_point() +
+  geom_text_repel(data = players_of_interest, aes(label = name)) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1") +
+  scale_x_continuous(labels = scales::percent) +
+  labs(
+    title = "Numbers of Games played vs. Games won in percent",
+    x = "Share in percent",
+    y = "Total matches played",
+    color = "Active players"
+  )
+
+```
+
+## 9. Rally Length
+
+```{r rally length}
+
+# read data frame from deuce package
+data(mcp_points)
+
+# filter out women's matches and separate match_id into columns
+mcp_points %<>%
+  filter(grepl("\\d{8}-M-", match_id)) %>%
+  separate(match_id,
+    sep = "-",
+    into = c(
+      "date",
+      "sex",
+      "place",
+      "level",
+      "player_1",
+      "player_2"
+    )
+  ) %>%
+  select(-sex) %>%
+  mutate(
+    date = as.POSIXct(date, format = "%Y%m%d"),
+    player_1 = trimws(gsub("_", " ", player_1)),
+    player_2 = trimws(gsub("_", " ", player_2))
+  ) %>%
+  mutate_at(vars(isAce:isDouble), as.logical) %>%
+  left_join(
+    player_names %>%
+      select(player_1 = name, player_1_id = player_id),
+    by = "player_1"
+  ) %>%
+  left_join(
+    player_names %>%
+      select(player_2 = name, player_2_id = player_id),
+    by = "player_2"
+  )
+
+# summarise to matches
+mcp_matches <- mcp_points %>%
+  # filter out one match that has NAs in important columns
+  filter(place != "Aptos_CH" | level != "SF") %>%
+  gather(indicator, name, player_1:player_2) %>%
+  mutate(indicator = ifelse(indicator == "player_1", 1, 2)) %>%
+  mutate(
+    player_id = ifelse(indicator == 1, player_1_id, player_2_id),
+    opponent_id = ifelse(indicator == 1, player_2_id, player_1_id)
+  ) %>%
+  group_by(date, place, level, player_id, opponent_id) %>%
+  summarise(
+    rallyLength = mean(as.numeric(rallyCount), na.rm = TRUE),
+    number_of_rallies = n()
+  )
+
+# get values for big 4
+big_4_mcp_values <- mcp_matches %>%
+  filter(player_id %in% big_4$id) %>%
+  # join player names
+  left_join(player_names, by = "player_id")
+
+# calculate means for each season
+big_4_rally_lengths <- big_4_mcp_values %>%
+  group_by(season = format(date, "%Y"), player_id, name) %>%
+  # calculate a weighted average by multiplying the average rally length of
+  # each match with the number of rallies in the match
+  summarise(
+    rallyLength = sum(rallyLength * number_of_rallies) / sum(number_of_rallies)
+  ) %>%
+  ungroup()
+
+ggplot(
+  data = big_4_rally_lengths,
+  aes(
+    x = season,
+    y = rallyLength,
+    color = name,
+    group = name
+  )
+) +
+  geom_line() +
+  theme_minimal() +
+  ylim(0, NA) +
+  labs(
+    title = "Average length of a rally by the big 4 players",
+    y = "Number of times the ball was hit",
+    x = "Time"
+  )
+
+```
+
+
+## 10. Match Length
+
+```{r match length}
+
+average_match_lengths <- big_4_match_stats %>%
+  group_by(name, player_id, best_of, p_matches) %>%
+  summarise(
+    total_matches = n(),
+    coverage = sum(ifelse(is.na(minutes), 0, 1)) / n(),
+    minutes = mean(minutes, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  mutate(
+    best_of = factor(best_of),
+    p_matches = ifelse(p_matches == 1, "Wins", "Defeats")
+  )
+
+# calculate averages
+average_of_all_players <- player_match_stats %>%
+  filter(!is.na(minutes)) %>%
+  group_by(p_matches, best_of, player_id) %>%
+  # calculate average per player
+  summarise(minutes = mean(minutes, na.rm = TRUE)) %>%
+  # calculate everage of all players
+  summarise(minutes = mean(minutes, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(
+    best_of = factor(best_of),
+    p_matches = ifelse(p_matches == 1, "Wins", "Defeats")
+  )
+
+ggplot(
+  data = average_match_lengths,
+  aes(
+    x = best_of,
+    y = minutes,
+    label = name,
+    color = name == "Roger Federer"
+  )
+) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  facet_wrap(~ p_matches) +
+  geom_text(
+    data = average_match_lengths %>%
+      filter(player_id %in% big_4$id),
+    size = 3
+  ) +
+  geom_point(
+    data = average_of_all_players,
+    inherit.aes = FALSE,
+    aes(
+      x = best_of,
+      y = minutes
+    )
+  ) +
+  scale_color_manual(values = c("black", "red")) +
+  ylim(50, 200) +
+  labs(
+    title = "Average match length of Top 10 players",
+    subtitle = "The black dot is the average over all players",
+    x = "Number of Sets (Best of …)",
+    y = "Average Minutes"
+  )
+
+```
+
+## 11. Cumulative Ranking Points
+
+```{r cumulative ranking points}
+
+# gather for better joinability
+ranking_point_breakdown %<>%
+  gather(round, points, W:RR)
+
+# generate new table with one row per tournament and player
+# with cumulative ranking points added per tournament
+tournament_ranking_points <- player_match_stats %>%
+  filter(
+    player_id %in% champions$id |
+    player_id %in% big_4$id
+  ) %>%
+  select(
+    player_id,
+    tournament_event_id,
+    date,
+    age = player_age,
+    level,
+    round,
+    season,
+    p_matches
+  ) %>%
+  group_by(player_id, tournament_event_id) %>%
+  mutate(round = factor(round, levels = ranking_point_levels)) %>%
+  arrange(player_id, tournament_event_id, round) %>%
+# keep only most important match (multiple if RR) of tournament
+  filter(as.integer(round) == min(as.integer(round)))  %>%
+  mutate(round = as.character(round)) %>%
+  mutate(round = ifelse(round == "F" & p_matches == 1, "W", round)) %>%
+  left_join(
+    tournaments %>%
+      select(tournament_event_id, draw_size) %>%
+      # replace two faulty values in the tournaments table
+      mutate(draw_size = ifelse(
+        tournament_event_id == 3843 | tournament_event_id == 3913,
+        56,
+        draw_size
+      )),
+    by = "tournament_event_id"
+  ) %>%
+  # calculate min_draw_size to match data from atp website
+  mutate(
+    min_draw_size = ifelse(
+      draw_size > 56 & level == "M",
+      56,
+      0
+    )
+  ) %>%
+  mutate(
+    min_draw_size = ifelse(
+      draw_size > 32 & level %in% c("A", "B"),
+      32,
+      min_draw_size
+    )
+  ) %>%
+  left_join(
+    ranking_point_breakdown,
+    by = c("level", "round", "min_draw_size")
+  ) %>%
+  mutate(points = ifelse(is.na(points), 0, points)) %>%
+  mutate(points = ifelse(round == "RR" & p_matches == 0, 0, points)) %>%
+# it's really strange, but there are some negative values in the age column,
+# but only for old players
+  filter(age > 14) %>%
+  group_by(player_id) %>%
+  arrange(age) %>%
+  mutate(cumsum = cumsum(points))
+
+# plot
+ggplot(
+  data = tournament_ranking_points,
+  aes(
+    x = age,
+    y = cumsum,
+    group = player_id
+  )
+) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  geom_line(
+    colour = "darkgrey",
+    alpha = 0.4,
+    size = 0.2
+  ) +
+  geom_line(
+    data = tournament_ranking_points %>%
+      filter(
+        player_id %in% champions$id |
+        player_id %in% big_4$id
+      ),
+    aes(color = factor(player_id)),
+    alpha = 1,
+    size = 0.2
+  ) +
+  geom_text_repel(
+    data = tournament_ranking_points %>%
+      filter(
+        player_id %in% champions$id |
+        player_id %in% big_4$id
+      ) %>%
+      filter(age == max(age)) %>%
+      left_join(player_names, by = "player_id"),
+    aes(label = name),
+    size = 3,
+    nudge_x = 1,
+    segment.color = NA
+  ) +
+  geom_line(
+    data = tournament_ranking_points %>%
+      filter(player_id == 3819),
+    aes(group = 3819),
+    alpha = 1,
+    size = 1
+  ) +
+  labs(
+    x = "Age",
+    y = "Cumulative ranking points",
+    title = "Cumulative Ranking Points won over career"
+  )
+
+```
+
+```{r linting}
+lintr::lint("main.Rmd", linters = 
+              lintr::with_defaults(
+                commented_code_linter = NULL,
+                trailing_whitespace_linter = NULL
+                )
+            )
+```
+
+
+

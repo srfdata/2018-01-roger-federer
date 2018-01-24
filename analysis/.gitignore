@@ -1,0 +1,16 @@
+.httr-oauth
+.google_API_keys
+*.RData
+!rdata/*
+rdata/.DS_Store
+*.Rproj
+*.Rproj.user
+*.Rhistory
+*.Rprofile
+*.html
+auth
+.~lock*
+manifest.R
+output/ignore/*
+input/ignore/*
+output/*.pdf
