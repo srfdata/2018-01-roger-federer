@@ -230,7 +230,7 @@ if (!dir.exists("~/.checkpoint")) {
 checkpoint(snapshotDate = package_date,
            project = path_to_wd,
            verbose = T,
-           scanForPackages = F,
+           scanForPackages = T,
            use.knitr = F,
            R.version = r_version) # wenn eine "ähnliche" Version von R
  # installiert ist (3.4.x in diesem Fall), kann dieses
